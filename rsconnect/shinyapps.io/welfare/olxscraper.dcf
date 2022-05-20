@@ -1,0 +1,13 @@
+name: olxscraper
+title: olxscraper
+username:
+account: welfare
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6340648
+bundleId: 5927404
+url: https://welfare.shinyapps.io/olxscraper/
+when: 1653059998.88031
+lastSyncTime: 1653059998.88032
+asMultiple: FALSE
+asStatic: FALSE
