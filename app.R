@@ -93,6 +93,8 @@ ui <- fluidPage(
                                          "Noida" = "noida_g4059326",
                                          "Chennai" = "chennai_g4059162",
                                          "Chandigarh" = "chandigarh_g2001149",
+                                         "Hyderabad" = "hyderabad_g4058526",
+                                         "Kozhikode" = "kozhikode_g4058877",
                                          "Bengaluru" = "bengaluru_g4058803",
                                          "Mumbai" = "mumbai_g4058997",
                                          "Ahmedabad" = "ahmedabad_g4058677",
@@ -140,7 +142,7 @@ server <- function(input, output, session) {
       mutate(year = as.factor(year))
 
     p<- polo2 |>
-      ggplot(aes(x = year, y = prices, group = year, label =  carname)) +
+      ggplot(aes(x = year, y = prices, group = year, text = (paste(carname, locality, date)))) + # This will help us display more information on hover
       #geom_violin(aes(alpha = 0.001), show.legend = FALSE)+
       geom_boxplot(aes(alpha = 0.0001, fill = "EA5000"), show.legend = FALSE) +
       geom_jitter(aes(size = mileage),show.legend = FALSE) +
@@ -150,7 +152,7 @@ server <- function(input, output, session) {
       theme_bw()+
       #geom_text(aes(size = mileage),check_overlap = TRUE)+
       theme(legend.position = "null")
-    p<- ggplotly(p, tooltip = c("mileage", "y", "label"))
+    p<- ggplotly(p, tooltip = c("mileage", "y", "text"))
     p |> layout(showlegend = FALSE)# Hides the legend in plotly
 
   })
