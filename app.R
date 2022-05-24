@@ -13,9 +13,14 @@ library(httr)
 library(tidyverse)
 library(plotly)
 library(lubridate)
-olxfind<- function(area,yearstart, yearend, make, fuel){
+olxfind<- function(area,yearstart, yearend, make, fuel, budget,mile){
 
-  link <- paste0("https://www.olx.in/",area,"/cars_c84?filter=first_owner_eq_1%2Cmake_eq_",make,"%2Cyear_between_",yearstart,"_to_",yearend, "%2Cpetrol_eq_", fuel)
+  if(make == "any"){
+    link = paste0("https://www.olx.in/",area,"/cars_c84","?filter=first_owner_eq_1%2Cyear_between_",yearstart,"_to_",yearend, "%2Cpetrol_eq_", fuel,"%2Cmileage_max_", mile, "%2Cprice_max_",budget)
+  }else{
+    link <- paste0("https://www.olx.in/",area,"/cars_c84?filter=first_owner_eq_1%2Cmake_eq_",make,"%2Cyear_between_",yearstart,"_to_",yearend, "%2Cpetrol_eq_", fuel,"%2Cmileage_max_", mile, "%2Cprice_max_",budget)
+  }
+
   page<- link |> session() |> read_html() # It is important to create a session first or else you may get a 403 error
   prices<- page |> html_nodes("._3GOwr") |> html_text()
   locality <- page |> html_nodes("._1zvfB") |> html_text()
@@ -61,7 +66,7 @@ olxfind<- function(area,yearstart, yearend, make, fuel){
   Sys.sleep(5)
 }
 
-
+olxfind(area = "dehradun_g4059236", yearstart = "2014", yearend = "2021", make = "volkswagen", fuel= "petrol", budget= "400000", mile = "60000")
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   titlePanel("Used car prices on Olx"),
@@ -69,6 +74,7 @@ ui <- fluidPage(
     sidebarPanel(selectInput("manufacturer",
                              "Car Manufacturer",
                              choices = c("Volkswagen"= "volkswagen",
+                                         "Any" = "any",
                                          "Maruti" = "maruti-suzuki",
                                          "Hyundai"= "hyundai",
                                          "Honda" = "cars-honda",
@@ -98,6 +104,7 @@ ui <- fluidPage(
                                          "Bengaluru" = "bengaluru_g4058803",
                                          "Mumbai" = "mumbai_g4058997",
                                          "Ahmedabad" = "ahmedabad_g4058677",
+                                         "Jamnagar" = "jamnagar_g4058703",
                                          "Jaipur" = "jaipur_g4059123")),
                  numericInput("fromyear",
                               "Year of start",
@@ -106,14 +113,15 @@ ui <- fluidPage(
                               "Year till manufacture", 2021),
                  sliderInput("mileage",
                               "Miles Run",
-                             5000,
-                             100000,
-                             100000),
+                             min=5000,
+                             max=100000,
+                             value= 50000),
                  sliderInput("budget", "Budget",
                              100000,
                              1500000,
-                             550000,
-                             step = 1000),
+                             value = 500000,
+                             step = 1000,
+                             dragRange = T),
                  downloadButton("downloadData", "Download the data")),
     mainPanel(
       "Plots",
@@ -134,12 +142,13 @@ server <- function(input, output, session) {
 
 
   output$Plot1<- renderPlotly({
-    polo1<- olxfind(area= input$location, yearstart = input$fromyear, yearend = input$toyear,make = input$manufacturer, fuel = input$fuel)
-    polo1<- as_tibble(polo1)
+    polo1<- olxfind(area= input$location, yearstart = input$fromyear, yearend = input$toyear,make = input$manufacturer, fuel = input$fuel, budget= input$budget, mile = input$mileage)
+    polo1<<- as_tibble(polo1)
     polo2<<- polo1 |>
-      filter(mileage <= input$mileage) |>
-      filter(prices <= input$budget) |>
-      mutate(year = as.factor(year))
+      # filter(mileage <= input$mileage) |>
+      # filter(prices <= input$budget) |>
+      mutate(year = as.factor(year)) |>
+      select(-month)
 
     p<- polo2 |>
       ggplot(aes(x = year, y = prices, group = year, text = (paste(carname, locality, date)))) + # This will help us display more information on hover
@@ -153,16 +162,18 @@ server <- function(input, output, session) {
       #geom_text(aes(size = mileage),check_overlap = TRUE)+
       theme(legend.position = "null")
     p<- ggplotly(p, tooltip = c("mileage", "y", "text"))
-    p |> layout(showlegend = FALSE)# Hides the legend in plotly
+    #p
+   p |> layout(showlegend = FALSE)# Hides the legend in plotly
 
   })
   output$Plot2<- renderPlot({
-    polo1<- olxfind(area= input$location, yearstart = input$fromyear, yearend = input$toyear,make = input$manufacturer, fuel = input$fuel)
-    polo1<- as_tibble(polo1)
-    polo2<<- polo1 |>
-      filter(mileage <= input$mileage) |>
-      filter(prices <= input$budget) |>
-      mutate(year = as.factor(year))
+    # polo1<- olxfind(area= input$location, yearstart = input$fromyear, yearend = input$toyear,make = input$manufacturer, fuel = input$fuel,budget= input$budget, mile = input$mileage)
+    # polo1<<- as_tibble(polo1)
+    # polo2<<- polo1 |>
+    #   # filter(mileage <= input$mileage) |>
+    #   # filter(prices <= input$budget) |>
+    #   mutate(year = as.factor(year))|>
+    #   select(-month)
     polo2 |> mutate(carname = as.factor(carname),
                     year = as.character(year),
                     year = as.numeric(year)) |>
